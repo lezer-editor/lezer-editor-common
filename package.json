@@ -1,0 +1,24 @@
+{
+  "name": "@lezer-editor/lezer-editor-common",
+  "version": "1.0.0",
+  "author": "upslash-dev <upslash.dev@gmail.com>",
+  "license": "MIT",
+  "description": "Lezer Editor Commons",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepare": "",
+    "build": "tsc",
+    "login": "pnpm login --scope=@lezer-editor",
+    "unpub": "pnpm unpublish ${npm_package_name}@${npm_package_version}",
+    "pub": "git commit -am 'pre-publish' --allow-empty && pnpm run build && pnpm publish --access public",
+    "ver": "pp version patch"
+  },
+  "devDependencies": {
+    "lezer": "^0.12.0",
+    "typescript": "^4.0.5"
+  }
+}

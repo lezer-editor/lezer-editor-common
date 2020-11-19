@@ -12,9 +12,9 @@
   "scripts": {
     "prepare": "",
     "build": "tsc",
-    "login": "pnpm login --scope=@lezer-editor",
-    "unpub": "pnpm unpublish ${npm_package_name}@${npm_package_version}",
-    "pub": "git commit -am 'pre-publish' --allow-empty && pnpm run build && pnpm publish --access public",
+    "login": "npm login --scope=@lezer-editor",
+    "unpub": "npm unpublish ${npm_package_name}@${npm_package_version}",
+    "pub": "git commit -am 'pre-publish' --allow-empty && npm run build && npm publish --access public",
     "ver": "pp version patch"
   },
   "devDependencies": {

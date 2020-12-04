@@ -16,10 +16,15 @@
     "unpub": "npm unpublish ${npm_package_name}@${npm_package_version}",
     "pub": "git commit -am 'pre-publish' --allow-empty && npm run build && npm publish --access public",
     "ver": "pp version patch",
-    "local:deploy": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-editor/node_modules/${npm_package_name}/"
+    "local:deploy": "npm run local:deploy-lezer-editor && npm run local:deploy-lezer-sample-grammar",
+    "local:deploy-lezer-editor": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-editor/node_modules/${npm_package_name}/",
+    "local:deploy-lezer-sample-grammar": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-example-grammar/node_modules/${npm_package_name}/"
   },
   "devDependencies": {
     "lezer": "^0.12.0",
     "typescript": "^4.0.5"
+  },
+  "dependencies": {
+    "node-json-transform": "^1.1.1"
   }
 }

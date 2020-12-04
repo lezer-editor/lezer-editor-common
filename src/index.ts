@@ -1,3 +1,30 @@
+import {transform } from 'node-json-transform';
+
+/*
+    Example:
+
+    JSONMapping: 1+2
+
+        getOption('jsonMapping') : JSONMapping = {
+            "name": "name",
+            "start": "idStart", "end": "idEnd",
+            "children": "c"
+        }
+        
+        parse('1+2', {mode: 'PARSE'}) : JSON = {
+            name: '+',
+            idStart: 1, idEnd: 2,
+            c: [
+                {name: '1', idStart: 0, idEnd: 1}, {name: '2', idStart: 2, idEnd: 3}
+            ]
+        }
+    */
+
+export interface ParserAdapter {
+    getOption(key: string): any;
+    parse(input: string, context: Context): ParseResult;
+}
+
 type JSON = any;
 export type SimpleValue = string | boolean | number;
 
@@ -11,10 +38,11 @@ export interface ASTNode {
     value?: any;
 }
 
-export type ParseMode = "PARSE"|"EVAL";
+export type ParseMode = "PARSE" | "EVAL";
 
 export interface Context {
     grammarTag: string;
+    astIterator?: ASTIterator;
     mode?: ParseMode;
     dataContext?: any;
     [otherProps: string]: any;
@@ -36,7 +64,7 @@ export interface ASTNodeVisitor {
 }
 
 export interface ASTIterator {
-    traverse(visitor: ASTNodeVisitor);
+    traverse(visitor: ASTNodeVisitor): void;
 }
 
 export class ASTNodeImpl implements ASTNode {
@@ -62,26 +90,52 @@ export const OPTION_ROOT_TAGS = 'rootTags';
 
 export type ParseResult = SimpleValue | JSON | JSONWithMapping | ASTIterator;
 
-/*
-    Example:
-
-    JSONMapping: 1+2
-
-        getOption('jsonMapping') : JSONMapping = {
-            "name": "name",
-            "start": "idStart", "end": "idEnd",
-            "children": "c"
+export const ASTIterators = {
+    identityIterator(n: ASTNode): ASTIterator {
+        return {
+            traverse(v: ASTNodeVisitor) {
+                v.enter(n);
+                v.leave(n);
+            }
         }
-        
-        parse('1+2', {mode: 'PARSE'}) : JSON = {
-            name: '+',
-            idStart: 1, idEnd: 2,
-            c: [
-                {name: '1', idStart: 0, idEnd: 1}, {name: '2', idStart: 2, idEnd: 3}
-            ]
+    },
+
+    json(json: JSON, jsonMapping: JSONMapping): ASTIterator {
+        const txMapping = {
+            item: jsonMapping, operate: [{
+                on: jsonMapping['children'],
+                run: (json) => transform(json, txMapping)
+            }]
+        };
+        const ast: ASTNode = transform(json, txMapping);
+
+        return toASTIterator(ast);
+    },
+
+    toList(it: ASTIterator): ASTNode[] {
+        const r = [];
+        it.traverse({
+            enter(n: ASTNode) {
+                r.push(n);
+            }
+        })
+        return r;
+    }
+
+}
+
+function toASTIterator(node: ASTNode): ASTIterator {
+    const recurse = (node: ASTNode, visitor: ASTNodeVisitor) => {
+        visitor.enter(node);
+        node.children?.forEach(c => {
+            recurse(c, visitor);
+        });
+        visitor.leave(node);
+    }
+
+    return {
+        traverse(visitor: ASTNodeVisitor) {
+            recurse(node, visitor);
         }
-    */
-export interface ParserAdapter {
-    getOption(key: string): any;
-    parse(input: string, context: Context): ParseResult;
+    }
 }

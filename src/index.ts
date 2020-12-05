@@ -63,7 +63,7 @@ export class ASTNodeImpl implements ASTNode {
 
 /* An ASTNode hydrated with it's children */
 export class HydratedASTNodeImpl extends ASTNodeImpl implements HydratedASTNode {
-    children: HydratedASTNode[];
+    children: HydratedASTNode[] = [];
 
     constructor(
         props: HydratedASTNodeProps
@@ -76,7 +76,7 @@ export class HydratedASTNodeImpl extends ASTNodeImpl implements HydratedASTNode 
     }
 
     static from(n : ASTNode) {
-        return new HydratedASTNodeImpl({...n, children: null});
+        return new HydratedASTNodeImpl({...n, children: []});
     }
 }
 
@@ -129,6 +129,7 @@ export abstract class ASTIteratorImpl<T extends ASTNode> implements ASTIterator<
                     leave(n: T) {
                         const current = stack.pop();
                         const parent = stack.top;
+                        parent.children = parent.children || [];
                         parent.children.push(current);
                         visitor.leave(current);
                     }

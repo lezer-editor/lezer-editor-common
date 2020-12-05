@@ -102,7 +102,7 @@ export interface JSONMapping {
 
 export interface ASTNodeVisitor<T extends ASTNode> {
     enter(n: T): false | void;
-    leave?(n: T): void;
+    leave(n: T): void;
 }
 
 export interface ASTIterator<T extends ASTNode> {
@@ -175,9 +175,13 @@ export const ASTIterators = {
 
     toList<T extends ASTNode>(it: ASTIterator<T>): T[] {
         const r = [];
-        it.traverse({
+        it.traverse(new class implements ASTNodeVisitor<T> {
             enter(n: T) {
                 r.push(n);
+            }
+
+            leave(n: T) {
+
             }
         })
         return r;

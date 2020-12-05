@@ -129,8 +129,10 @@ export abstract class ASTIteratorImpl<T extends ASTNode> implements ASTIterator<
                     leave(n: T) {
                         const current = stack.pop();
                         const parent = stack.top;
-                        parent.children = parent.children || [];
-                        parent.children.push(current);
+                        if (parent) {
+                            parent.children = parent.children || [];
+                            parent.children.push(current);
+                        }
                         visitor.leave(current);
                     }
                 });

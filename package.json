@@ -15,7 +15,7 @@
     "login": "npm login --scope=@lezer-editor",
     "unpub": "npm unpublish ${npm_package_name}@${npm_package_version}",
     "pub": "git commit -am 'pre-publish' --allow-empty && npm run build && npm publish --access public",
-    "pubn": "r=1; while [ $r -eq 1 ]; do npm run pub; r=$?; sleep 3; done",
+    "pubn": "r=1; while [ $r -eq 1 ]; do npm run pub; r=$?; sleep 15; done",
     "ver": "pp version patch",
     "local:deploy": "npm run local:deploy-lezer-editor && npm run local:deploy-lezer-sample-grammar",
     "local:deploy-lezer-editor": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-editor/node_modules/${npm_package_name}/",

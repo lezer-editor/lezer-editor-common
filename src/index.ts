@@ -1,4 +1,5 @@
 import {transform } from 'node-json-transform';
+import { Stack } from 'stack-typescript';
 
 /*
     Example:
@@ -25,24 +26,65 @@ export interface ParserAdapter {
     parse(input: string, context: Context): ParseResult;
 }
 
-type JSON = any;
 export type SimpleValue = string | boolean | number;
+export type ParseResult = SimpleValue | JSON | JSONWithMapping | ASTIterator<ASTNode>;
+type JSON = any;
 
-export interface ASTNode {
+export interface ASTNodeProps {
     name: string,
     start: number,
     end: number,
-    children?: ASTNode[],
     skip?: boolean,
     error?: string,
     value?: any;
+}
+export interface ASTNode extends ASTNodeProps {
+    
+}
+
+export interface HydratedASTNodeProps extends ASTNodeProps {
+    children: HydratedASTNode[];
+}
+
+export interface HydratedASTNode extends ASTNode, HydratedASTNodeProps {
+    dehydrate(): ASTNode;
+}
+
+// merge the interface with the class (class will gain iface props automagically)
+export interface ASTNodeImpl extends ASTNode {}
+
+export class ASTNodeImpl implements ASTNode {
+    constructor(
+        props: ASTNodeProps
+    ) {
+        Object.assign(this, props);
+    }
+}
+
+/* An ASTNode hydrated with it's children */
+export class HydratedASTNodeImpl extends ASTNodeImpl implements HydratedASTNode {
+    children: HydratedASTNode[];
+
+    constructor(
+        props: HydratedASTNodeProps
+    ) {
+        super(props);
+    }
+
+    dehydrate(): ASTNode {
+        return new ASTNodeImpl({...this, children: undefined});
+    }
+
+    static from(n : ASTNode) {
+        return new HydratedASTNodeImpl({...n, children: null});
+    }
 }
 
 export type ParseMode = "PARSE" | "EVAL";
 
 export interface Context {
     grammarTag: string;
-    astIterator?: ASTIterator;
+    astIterator?: ASTIterator<ASTNode>;
     mode?: ParseMode;
     dataContext?: any;
     [otherProps: string]: any;
@@ -54,29 +96,47 @@ export interface JSONMapping {
     end: string;
     skip: string;
     error: string;
-    children: string;
     value: string;
+    children: string;
 }
 
-export interface ASTNodeVisitor {
-    enter(n: ASTNode): false | void;
-    leave?(n: ASTNode): void;
+export interface ASTNodeVisitor<T extends ASTNode> {
+    enter(n: T): false | void;
+    leave?(n: T): void;
 }
 
-export interface ASTIterator {
-    traverse(visitor: ASTNodeVisitor): void;
+export interface ASTIterator<T extends ASTNode> {
+    traverse(visitor: ASTNodeVisitor<T>): void;
+    hydrate(): ASTIterator<HydratedASTNode>;
 }
 
-export class ASTNodeImpl implements ASTNode {
-    constructor(
-        public name: string,
-        public start: number,
-        public end: number,
-        public children?: ASTNode[],
-        public skip?: boolean,
-        public error?: string
-    ) {
+export abstract class ASTIteratorImpl<T extends ASTNode> implements ASTIterator<T> {
+    abstract traverse(visitor: ASTNodeVisitor<T>): void;
 
+    hydrate(): ASTIterator<HydratedASTNode> {
+        const self = this;
+        const stack = new Stack<HydratedASTNode>();
+        const r = new class extends ASTIteratorImpl<HydratedASTNode> {
+            traverse(visitor: ASTNodeVisitor<HydratedASTNode>): void {
+
+                self.traverse({
+                    enter(n : T) {
+                        const rn = HydratedASTNodeImpl.from(n);
+                        stack.push(rn);
+                        visitor.enter(rn);
+                    },
+        
+                    leave(n: T) {
+                        const current = stack.pop();
+                        const parent = stack.top;
+                        parent.children.push(current);
+                        visitor.leave(current);
+                    }
+                });
+
+            }
+        };
+        return r;
     }
 }
 
@@ -88,34 +148,32 @@ export interface JSONWithMapping {
 export const OPTION_JSON_MAPPING = 'jsonMapping';
 export const OPTION_ROOT_TAGS = 'rootTags';
 
-export type ParseResult = SimpleValue | JSON | JSONWithMapping | ASTIterator;
-
 export const ASTIterators = {
-    identityIterator(n: ASTNode): ASTIterator {
-        return {
-            traverse(v: ASTNodeVisitor) {
+    fromIdentity<T extends ASTNode>(n: T): ASTIterator<T> {
+        return new class extends ASTIteratorImpl<T> {
+            traverse(v: ASTNodeVisitor<T>) {
                 v.enter(n);
                 v.leave(n);
             }
         }
     },
 
-    json(json: JSON, jsonMapping: JSONMapping): ASTIterator {
+    fromHydratedJson<T extends ASTNode>(json: JSON, jsonMapping: JSONMapping, dehydrate: boolean): ASTIterator<T> {
         const txMapping = {
             item: jsonMapping, operate: [{
                 on: jsonMapping['children'],
                 run: (json) => transform(json, txMapping)
             }]
         };
-        const ast: ASTNode = transform(json, txMapping);
+        const ast: HydratedASTNode = transform(json, txMapping);
 
-        return toASTIterator(ast);
+        return toASTIterator(ast, dehydrate);
     },
 
-    toList(it: ASTIterator): ASTNode[] {
+    toList<T extends ASTNode>(it: ASTIterator<T>): T[] {
         const r = [];
         it.traverse({
-            enter(n: ASTNode) {
+            enter(n: T) {
                 r.push(n);
             }
         })
@@ -124,17 +182,23 @@ export const ASTIterators = {
 
 }
 
-function toASTIterator(node: ASTNode): ASTIterator {
-    const recurse = (node: ASTNode, visitor: ASTNodeVisitor) => {
-        visitor.enter(node);
+export type HydratedOrASTNode = ASTNode | HydratedASTNode;
+
+function toASTIterator(node: HydratedASTNode, dehydrate: boolean): ASTIterator<HydratedOrASTNode> {
+    
+    const recurse = (node: HydratedASTNode, visitor: ASTNodeVisitor<HydratedOrASTNode>) => {
+        const n = dehydrate ? node.dehydrate() : node;
+        visitor.enter(n);
+
         node.children?.forEach(c => {
             recurse(c, visitor);
         });
-        visitor.leave(node);
+
+        visitor.leave(n);
     }
 
-    return {
-        traverse(visitor: ASTNodeVisitor) {
+    return new class extends ASTIteratorImpl<HydratedOrASTNode> {
+        traverse(visitor: ASTNodeVisitor<HydratedOrASTNode>) {
             recurse(node, visitor);
         }
     }

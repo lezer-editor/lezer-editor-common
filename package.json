@@ -25,6 +25,7 @@
     "typescript": "^4.0.5"
   },
   "dependencies": {
-    "node-json-transform": "^1.1.1"
+    "node-json-transform": "^1.1.1",
+    "stack-typescript": "^1.0.4"
   }
 }

@@ -17,9 +17,9 @@
     "pub": "git commit -am 'pre-publish' --allow-empty && npm run build && npm publish --access public",
     "pubn": "r=1; while [ $r -eq 1 ]; do npm run pub; r=$?; sleep 15; done",
     "ver": "pp version patch",
-    "local:deploy": "npm run local:deploy-lezer-editor && npm run local:deploy-lezer-sample-grammar",
+    "local:deploy": "npm run local:deploy-lezer-editor && npm run local:deploy-lezer-grammar",
     "local:deploy-lezer-editor": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-editor/node_modules/${npm_package_name}/",
-    "local:deploy-lezer-sample-grammar": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-example-grammar/node_modules/${npm_package_name}/"
+    "local:deploy-lezer-grammar": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-grammar/node_modules/${npm_package_name}/"
   },
   "devDependencies": {
     "lezer": "^0.12.0",

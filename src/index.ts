@@ -21,14 +21,33 @@ import { Stack } from 'stack-typescript';
         }
     */
 
-export interface ParserAdapter {
-    getOption(key: string): any;
-    parse(input: string, context: Context): ParseResult;
+export interface GrammarEndpoint {
+    recompile?(clientId: string, grammar: string): Promise<CompileStatus>;
+    adapter(clientId: string) : Promise<GrammarAdapter>;
 }
 
+export interface GrammarAdapter {
+    getOption?(clientId: string, key: string): Promise<any>;
+    parse(clientId: string, rootTag: string, input: string): Promise<ParseResult>;
+    eval?(clientId: string, rootTag: string, input: string, ctx: JSON): Promise<any>;
+}
+
+export const OPTION_ROOT_TAGS = 'rootTags';
+export const OPTION_SUPPORTS = 'supports';
+export const OPTION_EDITOR_URL = 'editorUrl';
+
+export const SUPPORTS_MAPPING = 'mapping';
+export const SUPPORTS_EXT_EDITOR = 'extEditor';
+export const SUPPORTS_FORK = 'fork';
+
+export enum CompileStatus {
+    IN_PROGRESS,
+    FINISHED
+}
+
+export type ParseResult = SimpleValue | JSON;
+export type JSON = any;
 export type SimpleValue = string | boolean | number;
-export type ParseResult = SimpleValue | JSON | JSONWithMapping | ASTIterator<ASTNode>;
-type JSON = any;
 
 export interface ASTNodeProps {
     name: string,
@@ -80,16 +99,6 @@ export class HydratedASTNodeImpl extends ASTNodeImpl implements HydratedASTNode 
     }
 }
 
-export type ParseMode = "PARSE" | "EVAL";
-
-export interface Context {
-    grammarTag: string;
-    astIterator?: ASTIterator<ASTNode>;
-    mode?: ParseMode;
-    dataContext?: any;
-    [otherProps: string]: any;
-}
-
 export interface JSONMapping {
     name: string;
     start: string;
@@ -98,6 +107,10 @@ export interface JSONMapping {
     error: string;
     value: string;
     children: string;
+    operate?: [{
+        run: (v) => any,
+        on: string
+    }];
 }
 
 export interface ASTNodeVisitor<T extends ASTNode> {
@@ -143,14 +156,6 @@ export abstract class ASTIteratorImpl<T extends ASTNode> implements ASTIterator<
     }
 }
 
-export interface JSONWithMapping {
-    json: JSON;
-    mapping: JSONMapping;
-}
-
-export const OPTION_JSON_MAPPING = 'jsonMapping';
-export const OPTION_ROOT_TAGS = 'rootTags';
-
 export const ASTIterators = {
     fromIdentity<T extends ASTNode>(n: T): ASTIterator<T> {
         return new class extends ASTIteratorImpl<T> {
@@ -161,9 +166,9 @@ export const ASTIterators = {
         }
     },
 
-    fromHydratedJson<T extends ASTNode>(json: JSON, jsonMapping: JSONMapping, dehydrate: boolean): ASTIterator<T> {
+    fromJson<T extends ASTNode>(json: JSON, jsonMapping: JSONMapping, dehydrate: boolean): ASTIterator<T> {
         const txMapping = {
-            item: jsonMapping, operate: [{
+            item: jsonMapping, operate: [...jsonMapping.operate, {
                 on: jsonMapping['children'],
                 run: (json) => transform(json, txMapping)
             }]
@@ -177,11 +182,11 @@ export const ASTIterators = {
         const r = [];
         it.traverse(new class implements ASTNodeVisitor<T> {
             enter(n: T) {
-                r.push(n);
+
             }
 
             leave(n: T) {
-
+                r.push(n);
             }
         })
         return r;

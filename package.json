@@ -1,9 +1,9 @@
 {
-  "name": "@lezer-editor/lezer-editor-common",
+  "name": "@grammar-editor/grammar-editor-api",
   "version": "1.0.0",
   "author": "upslash-dev <upslash.dev@gmail.com>",
   "license": "MIT",
-  "description": "Lezer Editor Commons",
+  "description": "Grammar Editor API",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
   "files": [
@@ -11,18 +11,23 @@
   ],
   "scripts": {
     "prepare": "",
-    "build": "tsc",
-    "login": "npm login --scope=@lezer-editor",
+    "build": "rollup -c",
+    "login": "npm login --scope=@grammar-editor",
     "unpub": "npm unpublish ${npm_package_name}@${npm_package_version}",
     "pub": "git commit -am 'pre-publish' --allow-empty && npm run build && npm publish --access public",
     "pubn": "r=1; while [ $r -eq 1 ]; do npm run pub; r=$?; sleep 15; done",
     "ver": "pp version patch",
-    "local:deploy": "npm run local:deploy-lezer-editor && npm run local:deploy-lezer-grammar",
-    "local:deploy-lezer-editor": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-editor/node_modules/${npm_package_name}/",
-    "local:deploy-lezer-grammar": "npm run build && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ ../lezer-grammar/node_modules/${npm_package_name}/"
+    "local:deploy": "npm run build && npm run local:deploy-grammar-editor && npm run local:deploy-lezer-grammar",
+    "local:deploy-grammar-editor": "P=\"../grammar-editor/node_modules/${npm_package_name}/\" && mkdir -p $P && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ $P",
+    "local:deploy-lezer-grammar": "P=\"../lezer-grammar/node_modules/${npm_package_name}\" && mkdir -p $P && rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ $P && npm run local:deploy-lezer-grammar-endpoint",
+    "local:deploy-lezer-grammar-endpoint": "P=\"../lezer-grammar/endpoint/node_modules/${npm_package_name}\"; echo $P; mkdir -p $P; rsync -arvhP --filter '+ package.json' --filter '+ dist/' --filter '+ dist/**' --filter '- **'  ./ $P"
   },
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^11.1.0",
     "lezer": "^0.12.0",
+    "rollup": "^2.36.2",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-typescript2": "^0.29.0",
     "typescript": "^4.0.5"
   },
   "dependencies": {

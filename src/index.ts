@@ -28,21 +28,41 @@ export interface GrammarEndpoint {
 
 export interface GrammarAdapter {
     getOption?(clientId: string, key: string): Promise<any>;
-    parse(clientId: string, rootTag: string, input: string): Promise<ParseResult>;
-    eval?(clientId: string, rootTag: string, input: string, ctx: JSON): Promise<any>;
+    eval(clientId: string, rootTag: string, input: string, mode: EvalMode, ctx: JSON): Promise<ParseResult>;
 }
 
-export const OPTION_ROOT_TAGS = 'rootTags';
+export const OPTION_ENDPOINT_TYPE = 'endpointType';
 export const OPTION_SUPPORTS = 'supports';
 export const OPTION_EDITOR_URL = 'editorUrl';
+export const OPTION_FORK_URL = 'forkUrl';
+export const OPTION_ROOT_TAGS = 'rootTags';
 
-export const SUPPORTS_MAPPING = 'mapping';
-export const SUPPORTS_EXT_EDITOR = 'extEditor';
-export const SUPPORTS_FORK = 'fork';
+export const SUPPORTS_RECOMPILE = 'supportsRecompile';
+export const SUPPORTS_EXT_EDITOR = 'supportsExtEditor';
+export const SUPPORTS_FORK = 'supportsFork';
+export const SUPPORTS_ROOT_TAGS = 'supportsRootTags'
+
+export const DEFAULT_ROOT_TAG = 'Root';
+
+export enum EndpointType {
+    LIVE,
+    STATICJS
+}
+
+export enum LiveEndpointPath {
+    OPT = '/opt',
+    RECOMPILE = '/recompile',
+    EVAL = '/eval'
+}
 
 export enum CompileStatus {
     IN_PROGRESS,
     FINISHED
+}
+
+export enum EvalMode {
+    PARSE,
+    RUN
 }
 
 export type ParseResult = SimpleValue | JSON;

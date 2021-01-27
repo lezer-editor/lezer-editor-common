@@ -187,11 +187,16 @@ export const ASTIterators = {
     },
 
     fromJson<T extends ASTNode>(json: JSON, jsonMapping: JSONMapping, dehydrate: boolean): ASTIterator<T> {
+        const operate = [];
+        if (jsonMapping.operate) {
+            operate.push(jsonMapping.operate);
+        }
+        operate.push({
+            on: jsonMapping['children'],
+            run: (json) => transform(json, txMapping)
+        });
         const txMapping = {
-            item: jsonMapping, operate: [...jsonMapping.operate, {
-                on: jsonMapping['children'],
-                run: (json) => transform(json, txMapping)
-            }]
+            item: jsonMapping, operate
         };
         const ast: HydratedASTNode = transform(json, txMapping);
 

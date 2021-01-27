@@ -187,10 +187,7 @@ export const ASTIterators = {
     },
 
     fromJson<T extends ASTNode>(json: JSON, jsonMapping: JSONMapping, dehydrate: boolean): ASTIterator<T> {
-        const operate = [];
-        if (jsonMapping.operate) {
-            operate.push(jsonMapping.operate);
-        }
+        let operate = jsonMapping.operate ? jsonMapping.operate : [];
         operate.push({
             on: jsonMapping['children'],
             run: (json) => transform(json, txMapping)
